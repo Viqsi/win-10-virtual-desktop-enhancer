@@ -51,10 +51,14 @@ Menu, Tray, Default, &Manage Desktops
 Menu, Tray, Add, Reload Settings, Reload
 Menu, Tray, Add, Exit, Exit
 Menu, Tray, Click, 1
+; in this fork I choose to retain the standard menu
+Menu, Tray, Add
+Menu, Tray, Standard
 
 ; Read and groom settings
 
-ReadIni("settings.ini")
+;ReadIni("settings.ini")
+ReadIni(A_ScriptDir . "/settings.ini")
 
 global GeneralDesktopWrapping := (GeneralDesktopWrapping != "" and GeneralDesktopWrapping ~= "^[01]$") ? GeneralDesktopWrapping : 1
 global TooltipsEnabled := (TooltipsEnabled != "" and TooltipsEnabled ~= "^[01]$") ? TooltipsEnabled : 1
@@ -82,10 +86,15 @@ global changeDesktopNamesPopupText :=  "Change the desktop name of desktop #{:d}
 
 initialDesktopNo := _GetCurrentDesktopNumber()
 
-SwitchToDesktop(GeneralDefaultDesktop)
-; Call "OnDesktopSwitch" since it wouldn't be called otherwise, if the default desktop matches the current one
-if (GeneralDefaultDesktop == initialDesktopNo) {
-    OnDesktopSwitch(GeneralDefaultDesktop)
+if (GeneralDefaultDesktop != 0) {
+    SwitchToDesktop(GeneralDefaultDesktop)
+    ;; Call "OnDesktopSwitch" since it wouldn't be called otherwise, if the default desktop matches the current one
+    if (GeneralDefaultDesktop == initialDesktopNo) {
+        OnDesktopSwitch(GeneralDefaultDesktop)
+    }
+} else {
+    ;; If we're not doing a default desktop switch, just call OnDesktopSwitch on same as it wouldn't be called (see above)
+    OnDesktopSwitch(initialDesktopNo)
 }
 
 ; ======================================================================
@@ -330,7 +339,6 @@ OnDesktopSwitch(n:=1) {
         _ShowTooltipForDesktopSwitch(n)
     }
     _ChangeAppearance(n)
-    _ChangeBackground(n)
 
     if (previousDesktopNo) {
         _RunProgramWhenSwitchingFromDesktop(previousDesktopNo)
@@ -563,11 +571,11 @@ _ChangeBackground(n:=1) {
 
 _ChangeAppearance(n:=1) {
     Menu, Tray, Tip, % _GetDesktopName(n)
-    if (FileExist("./icons/" . n ".ico")) {
-        Menu, Tray, Icon, icons/%n%.ico
+    if (FileExist(A_ScriptDir . "/icons/" . n ".ico")) {
+        Menu, Tray, Icon, %A_ScriptDir%/icons/%n%.ico
     }
     else {
-        Menu, Tray, Icon, icons/+.ico
+        Menu, Tray, Icon, %A_ScriptDir%/icons/+.ico
     }
 }
 
