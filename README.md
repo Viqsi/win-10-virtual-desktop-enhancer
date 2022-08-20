@@ -1,3 +1,13 @@
+### IMPORTANT NOTE:
+
+This isn't really a continuation of the original project; I forked this long ago with the ambition of eventually tracking my own little modifications to sdias's original that I've been using for years. I haven't gotten around to actually *doing* that until quite recently, because I didn't have much strong reason to do so. But now I have two Windows systems on which I use this thing, so now I have a reason to sync, so now I have a reason to track. Woo.
+
+Win11-compatible versions of the VirtualDesktopAccessor DLL are taken from https://github.com/skottmckay/VirtualDesktopAccessor/ - thanks to skottmckay for providing same.
+
+Original readme follows:
+
+---
+
 # Windows 10 Virtual Desktop Enhancer
 
 **Warning:** I am officially no longer maintaining this project due to lack of time and interest. Thanks for using it and for all of your work towards helping me improve it. -sdias
