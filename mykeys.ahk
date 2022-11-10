@@ -1,3 +1,5 @@
+SetTimer, TBWindowsRise, 1000
+
 #Include, %A_ScriptDir%\virtual-desktop-enhancer.ahk
 ; These are a roundabout way of implementing function key shortcuts for desktop switching.
 F1::SwitchToDesktop(1)
@@ -49,6 +51,9 @@ F11::Run alacritty -e "wsl tmux new", %home%
 ^+F11::Run alacritty -e "wsl tmux attach -c $HOME", %home%
 ^F11::Run alacritty -o scrolling.history=50000 -e "pwsh", %home%
 ^#F11::Run alacritty -o scrolling.history=50000 -e "cmd", %home%
+;; Windows Terminal
+; Not using at the moment because I'm not getting the ancillary benefits anticipated (such as per-profile taskbar icons) AND it doesn't seem to focus on launch
+;F11::Run wt wsl tmux new, %home%
 
 ;; other hotkeys
 F10::Run "C:\Program Files\Vim\vim90\gvim.exe", %home%
@@ -186,7 +191,7 @@ return
 ; The basic concept:
 ; * Alt-F3 maximizes windows.
 ; * Alt+Shift+F3 maximizes vertically only.
-; * Some app windows (gvim, mintty) default to vertical-only.
+; * Some app windows (gvim, terminals) default to vertical-only.
 
 ; Regular maximizing toggle
 ; Toggle code from https://superuser.com/a/403017
@@ -197,32 +202,29 @@ MaximizeToggle() {
     Else WinMaximize A
 }
 ; Vertical-only maximize setup.
-; There's no simple function to make this happen like there is for WinMaximize,
-; so we simulate the necessary mouse clicks. Thankfully, it serves as a toggle
-; naturally, so I don't have to implement switching to WinRestore, A or
-; anything like that.
+; Previously, I handled this via simulating the necessary mouse clicks, but
+; this became a tad error-prone (especially if the mouse was bumped between
+; clicks somehow). So now I'm using one based on the keyboard shortcut Windows
+; provides. I'd just use it all the time, except it's not a toggle, so...
 VerticalOnlyMaximize() {
-    ; We want to save our current mouse position, and that requires converting
-    ; to screen coordinates mode. For the actual click, tho, we'll want window
-    ; coordinates mode.
-    CurrentCoordMode := A_CoordModeMouse
-    CoordMode, Mouse, Screen
-    MouseGetPos, MouseX, MouseY
-    CoordMode, Mouse, Window
-    MouseClick, left, 20, 1, 2, 0
-    CoordMode, Mouse, Screen
-    MouseMove, MouseX, MouseY, 0
-    CoordMode, Mouse, CurrentCoordMode
+    ; Vertical-only maximize doesn't set the "maximized" state, so we have to
+    ; check via unconventional means - send the command regardless and see if
+    ; the window height has changed.
+    WinGetPos ,,,,MyOrigHeight
+    Send #+{Up}
+    WinGetPos ,,,,MyNewHeight
+    If (MyOrigHeight == MyNewHeight)
+        WinRestore A
 }
 ; Default: Alt-F3 maxizes all, Alt-Shift-F3 does vertical-only.
 !F3::MaximizeToggle()
 !+F3::VerticalOnlyMaximize()
 ; Default vertical-only maximize windows.
-#If WinActive("ahk_exe gvim.exe") || WinActive("ahk_class ConsoleWindowClass")
+;#If WinActive("ahk_exe gvim.exe") || WinActive("ahk_class ConsoleWindowClass")
+#If WinActive("ahk_exe gvim.exe") || WinActive("ahk_exe alacritty.exe")
 !F3::VerticalOnlyMaximize()
 !+F3::MaximizeToggle()
 #If
-
 
 ;Command-C/X/V for copy/cut/paste in mintty
 #If WinActive("ahk_class mintty")
@@ -258,3 +260,11 @@ VerticalOnlyMaximize() {
 #if WinActive("ahk_exe i_view64.exe")
 Ins::Send {F2}
 #If
+
+; Keep NSNetMon and FB2K on top of the taskbar
+TBWindowsRise() {
+    WinSet, Top,, dotnet_title_bar
+    WinSet, Top,, NSnetmon
+}
+
+;F6::TBWindowsRise()
