@@ -109,9 +109,9 @@ terminal_invoke(termlaunchmode) {
         ; process overhead. Requires use of a custom-edited version of my usual
         ; font of choice because #3498.
         ; Default profile is assumed to be the WSL one.
-        Case "tmux": Run, wt wsl tmux new, %home%
-        Case "bash": Run, wt, %home%
-        Case "reattach": Run, wt wsl tmux attach -c $HOME, %home%
+        Case "tmux": Run, wt -p DebianNewTmux, %home%
+        Case "bash": Run, wt -p Debian, %home%
+        Case "reattach": Run, wt -p DebianReattachTmux, %home%
         Case "pwsh": Run, wt -p PowerShell, %home%
         Case "cmd": Run, wt -p "Command Prompt", %home%
     ;; Just a simple test to see any of the above terminals are active.
@@ -149,7 +149,9 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 !c::Send ^c
 !d::Send ^d
 !e::Send ^e
+#If Not WinActive("ahk_exe Civ4BeyondSword.exe")
 !f::Send ^f
+#If
 !g::Send ^g
 !h::Send ^h
 !i::Send ^i
@@ -168,7 +170,9 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 !u::Send ^u
 !v::Send ^v
 !w::Send ^w
+#If Not WinActive("ahk_exe Civ4BeyondSword.exe")
 !x::Send ^x
+#If
 !y::Send ^y
 !z::Send ^z
 !\::Send ^\
@@ -313,3 +317,19 @@ return
 #if WinActive("ahk_exe i_view64.exe")
 Ins::Send {F2}
 #If
+
+ExplicitResize() {
+    WinGet, Active_ID, ID, A
+    WinGetTitle, Active_Title, A
+    InputBox, wW, Window width, Enter the desired window width:, , 260, 130
+    InputBox, wH, Window height, Enter the desired window height:, , 260, 130
+    WinRestore, %Active_Title%
+    WinMove, ahk_id %Active_ID%, , , , wW, wH
+}
+^=::ExplicitResize()
+
+
+;#if WinActive("ahk_exe RobloxPlayerBeta.exe")
+;0::Space
+;MButton::Space
+;#if
