@@ -1,3 +1,19 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Setup Start, as suggested by VD.ah2 ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#SingleInstance force
+ListLines 0
+SendMode "Input"
+SetWorkingDir A_ScriptDir
+KeyHistory 0
+#WinActivateForce
+
+ProcessSetPriority "H"
+
+SetWinDelay -1
+SetControlDelay -1
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Window Z-Level Management ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5,10 +21,10 @@
 ; At the top of the script due to script execution setup timing (basically, we
 ; need to do this *before* pulling in virtual-desktop-enhancer)
 TBWindowsRise() {
-    WinSet, Top,, dotnet_title_bar
-    WinSet, Top,, NSnetmon
+    WinMoveTop("dotnet_title_bar")
+    WinMoveTop("NSnetmon")
 }
-SetTimer, TBWindowsRise, 1000
+SetTimer(TBWindowsRise, 1000)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,18 +33,17 @@ SetTimer, TBWindowsRise, 1000
 ; Near the top of the script as as to minimize environment changes made before
 ; virtual-desktop-enhancer (and its environment changes) is brought in.
 
-#Include, %A_ScriptDir%\virtual-desktop-enhancer.ahk
+#Include VD\VD.ah2
 ; These are a roundabout way of implementing function key shortcuts for desktop
 ; switching.
-F1::SwitchToDesktop(1)
-F2::SwitchToDesktop(2)
-F3::SwitchToDesktop(3)
-F4::SwitchToDesktop(4)
-+F1::MoveAndSwitchToDesktop(1)
-+F2::MoveAndSwitchToDesktop(2)
-+F3::MoveAndSwitchToDesktop(3)
-+F4::MoveAndSwitchToDesktop(4)
-#UseHook off    ; needed for later stuff to work consistently
+F1::VD.goToDesktopNum(1)
+F2::VD.goToDesktopNum(2)
+F3::VD.goToDesktopNum(3)
+F4::VD.goToDesktopNum(4)
++F1::VD.MoveWindowToDesktopNum("A",1), VD.goToDesktopNum(1)
++F2::VD.MoveWindowToDesktopNum("A",2), VD.goToDesktopNum(2)
++F3::VD.MoveWindowToDesktopNum("A",3), VD.goToDesktopNum(3)
++F4::VD.MoveWindowToDesktopNum("A",4), VD.goToDesktopNum(4)
 
 ; Desktop function key bypass (just in case)
 #F1::Send {F1}
@@ -52,18 +67,18 @@ terminal_invoke(termlaunchmode) {
     ;; cygwin
         ; Note no "tmux" cases, as my switch to using tmux regularly came after
         ; I left cygwin behind (so "bash" was in the "tmux" hotkey spot)
-        ;Case "bash": Run, C:\cygwin\bin\mintty.exe -i /Cygwin-Terminal.ico -
+        ;Case "bash": Run("C:\cygwin\bin\mintty.exe -i /Cygwin-Terminal.ico -")
     ;; msys
-        ;Case "tmux": Run, C:\msys64\msys2_shell.cmd -msys -use-full-path -c 'tmux new'
-        ;Case "bash": Run, C:\msys64\msys2_shell.cmd -msys -use-full-path
-        ;Case "reattach": Run, C:\msys64\msys2_shell.cmd -msys -use-full-path -c 'tmux attach'
+        ;Case "tmux": Run("C:\msys64\msys2_shell.cmd -msys -use-full-path -c 'tmux new'")
+        ;Case "bash": Run("C:\msys64\msys2_shell.cmd -msys -use-full-path")
+        ;Case "reattach": Run("C:\msys64\msys2_shell.cmd -msys -use-full-path -c 'tmux attach'")
     ;; wsl (original attempt)
         ; This one was abandoned because of a bug in which launching wsl.exe
         ; this way causes the scrollbar to be drawn over top of the last two
         ; columns. That was back when WCH was the default.
-        ;Case "tmux": Run, wsl tmux new, %home%
-        ;Case "bash": Run, wsl, %home%
-        ;Case "reattach": Run, wsl tmux attach, %home%
+        ;Case "tmux": Run("wsl tmux new", %home%)
+        ;Case "bash": Run("wsl", %home%)
+        ;Case "reattach": Run("wsl tmux attach", %home%)
     ;; wsl (direct distro launch)
         ; This doesn't seem to suffer from the above noted wsl.exe bug.
         ; But then I discovered Windows Console Host doesn't support OSC 52.
@@ -72,9 +87,9 @@ terminal_invoke(termlaunchmode) {
         ; discover it's just a mirage.)
         ; That's not a problem with WT as default, but then doing things this
         ; way gains you no benefit and costs you yet another process. Ugh.
-        ;Case "tmux": Run, debian.exe run "tmux new", %home%
-        ;Case "bash": Run, debian.exe, %home%
-        ;Case "reattach": Run, debian.exe run "tmux attach -c $HOME", %home%
+        ;Case "tmux": Run("debian.exe run 'tmux new'", %home%)
+        ;Case "bash": Run("debian.exe", %home%)
+        ;Case "reattach": Run("debian.exe run 'tmux attach -c $HOME'", %home%)
     ;; wsltty
         ; This one keeps getting tried and abandoned for two reasons:
         ; 1) Process overhead: a WSL session requires SEVEN (yes, SEVEN)
@@ -84,24 +99,23 @@ terminal_invoke(termlaunchmode) {
         ; 2) Their software distribution scheme is something beyond utterly
         ;    terrible, hopping into installer-managed profile folders without
         ;    actually bothering to be installer-manageable.
-        ;Case "tmux": Run, C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL="Debian" --configdir="D:\AppData\Roaming\wsltty" "tmux new", %home%
-        ;Case "bash": Run, C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL="Debian" --configdir="D:\AppData\Roaming\wsltty" -, %home%
-        ;Case "reattach": Run, C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL="Debian" --configdir="D:\AppData\Roaming\wsltty" "tmux attach", %home%
-        ;Case "isactive": Return (WinActive("ahk_class ConsoleWindowClass") || WinActive("ahk_exe mintty.exe"))
+        ;Case "tmux": Run("C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL='Debian' --configdir='D:\AppData\Roaming\wsltty' 'tmux new'", %home%)
+        ;Case "bash": Run("C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL='Debian' --configdir='D:\AppData\Roaming\wsltty' -", %home%)
+        ;Case "reattach": Run("C:\Users\jvc\AppData\Local\wsltty\bin\mintty.exe --WSL='Debian' --configdir='D:\AppData\Roaming\wsltty' 'tmux attach'", %home%)
     ;; alternate shells fallback
         ; These have generally assumed Windows Console Host as the default
         ; terminal.
-        ;Case "pwsh": Run, pwsh.exe, %home%
-        ;Case "cmd":Run, cmd.exe, %home%
+        ;Case "pwsh": Run("pwsh.exe", %home%)
+        ;Case "cmd":Run("cmd.exe", %home%)
     ;; alacritty (wsl AND alternate shells)
         ; I keep coming back to this one as a Least Common Acceptable option
         ; despite frustration with the developers, minor (but sometimes
         ; tolerable and/or workaroundable) bugs, and other foibles.
-        ;Case "tmux": Run, alacritty -e "wsl tmux new", %home%
-        ;Case "bash": Run, alacritty -e "wsl", %home%
-        ;Case "reattach": Run, alacritty -e "wsl tmux attach -c $HOME", %home%
-        ;Case "pwsh": Run, alacritty -o scrolling.history=50000 -e "pwsh", %home%
-        ;Case "cmd": Run, alacritty -o scrolling.history=50000 -e "cmd", %home%
+        ;Case "tmux": Run("alacritty -e 'wsl tmux new'", %home%)
+        ;Case "bash": Run("alacritty -e 'wsl'", %home%)
+        ;Case "reattach": Run("alacritty -e 'wsl tmux attach -c $HOME'", %home%)
+        ;Case "pwsh": Run("alacritty -o scrolling.history=50000 -e 'pwsh'", %home%)
+        ;Case "cmd": Run("alacritty -o scrolling.history=50000 -e 'cmd'", %home%)
     ;; Windows Terminal Direct
         ; Current choice because it's got the same process overhead as
         ; alacritty but with smaller processes AND I may have it beaten into
@@ -109,14 +123,11 @@ terminal_invoke(termlaunchmode) {
         ; process overhead. Requires use of a custom-edited version of my usual
         ; font of choice because #3498.
         ; Default profile is assumed to be the WSL one.
-        Case "tmux": Run, wt -p DebianNewTmux, %home%
-        Case "bash": Run, wt -p Debian, %home%
-        Case "reattach": Run, wt -p DebianReattachTmux, %home%
-        Case "pwsh": Run, wt -p PowerShell, %home%
-        Case "cmd": Run, wt -p "Command Prompt", %home%
-    ;; Just a simple test to see any of the above terminals are active.
-    ;; This does NOT check for which shell is running!
-        Case "isactive": Return (WinActive("ahk_class ConsoleWindowClass") || WinActive("ahk_class mintty") || WinActive("ahk_exe alacritty.exe") || WinActive("ahk_exe WindowsTerminal.exe"))
+        Case "tmux": Run("wt -p DebianNewTmux", %home%)
+        Case "bash": Run("wt -p Debian", %home%)
+        Case "reattach": Run("wt -p DebianReattachTmux", %home%)
+        Case "pwsh": Run("wt -p PowerShell", %home%)
+        Case "cmd": Run("wt -p 'Command Prompt'", %home%)
     }
 }
 F11::terminal_invoke("tmux")
@@ -125,14 +136,20 @@ F11::terminal_invoke("tmux")
 ^F11::terminal_invoke("pwsh")
 ^#F11::terminal_invoke("cmd")
 
+; Terminal Windows group. Used for checking if they're active.
+GroupAdd("TerminalWindows", "ahk_class ConsoleWindowClass")
+GroupAdd("TerminalWindows", "ahk_class mintty")
+GroupAdd("TerminalWindows", "ahk_exe alacritty.exe")
+GroupAdd("TerminalWindows", "ahk_exe WindowsTerminal.exe"))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other Application Invocation Hotkeys ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-F10::Run "C:\Program Files\Vim\vim90\gvim.exe", %home%
-#If Not WinActive("ahk_exe Arcanum.exe")
-F9::Run "C:\WINDOWS\system32\calc.exe"
-#If
+F10::Run("C:\Program Files\Vim\vim90\gvim.exe", %home%)
+#HotIfWinNotActive "ahk_exe Arcanum.exe"
+F9::Run("C:\WINDOWS\system32\calc.exe")
+#HotIf
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -149,9 +166,9 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 !c::Send ^c
 !d::Send ^d
 !e::Send ^e
-#If Not WinActive("ahk_exe Civ4BeyondSword.exe")
+#HotIfWinNotActive "ahk_exe Civ4BeyondSword.exe"
 !f::Send ^f
-#If
+#HotIf
 !g::Send ^g
 !h::Send ^h
 !i::Send ^i
@@ -163,16 +180,16 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 !o::Send ^o
 <!p::Send ^p
 ;!q::Send ^q
-!q::WinClose, A
+!q::WinClose("A")
 !r::Send ^r
 !s::Send ^s
 !t::Send ^t
 !u::Send ^u
 !v::Send ^v
 !w::Send ^w
-#If Not WinActive("ahk_exe Civ4BeyondSword.exe")
+#HotIfWinNotActive "ahk_exe Civ4BeyondSword.exe"
 !x::Send ^x
-#If
+#HotIf
 !y::Send ^y
 !z::Send ^z
 !\::Send ^\
@@ -228,36 +245,36 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 !+4::Send #+s
 
 ; Command-N for new window in Explorer
-#If WinActive("ahk_class CabinetWClass")
+#HotIfWinActive "ahk_class CabinetWClass"
 !n::Send #e
-#If
+#HotIf
 ; Command-N for new window in terminals
 ; NOTE: Dependent on my configuration elsewhere that sets window title strings
 ; based on the current shell. Yay egregious hacks!
-#If terminal_invoke("isactive") && WinActive("PS ")
+#HotIf WinActive("ahk_group TerminalWindows") && WinActive("PS ")
 !n::terminal_invoke("pwsh")
-#If
-#If terminal_invoke("isactive") && WinActive("CMD ")
+#HotIf
+#HotIf WinActive("ahk_group TerminalWindows") && WinActive("CMD ")
 !n::terminal_invoke("cmd")
-#If
-#If terminal_invoke("isactive")
+#HotIf
+#HotIfWinActive "ahk_group TerminalWindows"
 !n::terminal_invoke("tmux")
-#If
+#HotIf
 ;Command-C/X/V for copy/cut/paste in terminals
-#If terminal_invoke("isactive")
+#HotIfWinActive "ahk_group TerminalWindows"
 !c::Send ^{Insert}
 !x::Send ^{Delete}
 !v::Send +{Insert}
-#If
+#HotIf
 ; Command-R to rename pdf in SumatraPDF
-#If WinActive("ahk_exe SumatraPDF.exe")
+#HotIfWinActive "ahk_exe SumatraPDF.exe"
 !r::Send {F2}
-#If
+#HotIf
 ; Command/Control-W to close window in PDFXChange
-#If WinActive("ahk_exe PDFXEdit.exe")
-!w::WinClose, A
-^w::WinClose, A
-#If
+#HotIfWinActive "ahk_exe PDFXEdit.exe"
+!w::WinClose("A")
+^w::WinClose("A")
+#HotIf
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -269,12 +286,13 @@ F9::Run "C:\WINDOWS\system32\calc.exe"
 ; * Some app windows (gvim, terminals) default to vertical-only.
 
 ; Regular maximizing toggle
-; Toggle code from https://superuser.com/a/403017
+; based on original v1 toggle code from https://superuser.com/a/403017
 MaximizeToggle() {
-    WinGet MX, MinMax, A
-    If MX
-        WinRestore A
-    Else WinMaximize A
+    If (WinGetMinMax("A")) {
+        WinRestore("A")
+    } Else {
+        WinMaximize("A")
+    }
 }
 ; Vertical-only maximizing toggle.
 ; Previously, I handled this via simulating the necessary mouse clicks, but
@@ -284,22 +302,24 @@ MaximizeToggle() {
 VMaximizeToggle() {
     ; unlike regular maximizing, no "maximized" state is explicitly set when
     ; doing a vertical-only maximize, so we have to try other means
-    WinGetPos ,OX,OY,OW,OH,A
-    ;MsgBox, "OX:%OX% OY:%OY% OW:%OW% OH:%OH%"
+    WinGetPos(&OX,&OY,&OW,&OH,"A")
+    ;MsgBox("OX:%OX% OY:%OY% OW:%OW% OH:%OH%")
     Send #+{Up}
-    WinGetPos ,NX,NY,NW,NH,A
-    ;MsgBox, "NX:%NX% NY:%NY% NW:%NW% NH:%NH%"
+    WinGetPos(&NX,&NY,&NW,&NH,"A")
+    ;MsgBox("NX:%NX% NY:%NY% NW:%NW% NH:%NH%")
     If (OY == OY && OX == NX && OW == NW && OH == NH)
-        WinRestore A
+        WinRestore("A")
 }
 ; Default: Alt-F3 maximizes all, Alt-Shift-F3 does vertical-only.
 !F3::MaximizeToggle()
 !+F3::VMaximizeToggle()
 ; Vertical-only maximize windows swap these.
-#If WinActive("ahk_exe gvim.exe") || terminal_invoke("isactive")
+GroupAdd("VerticalMaximizeDefault", "ahk_group TerminalWindows")
+GroupAdd("VerticalMaximizeDefault", "ahk_exe gvim.exe")
+#HotIfWinActive "ahk_group VerticalMaximizeDefault"
 !F3::VMaximizeToggle()
 !+F3::MaximizeToggle()
-#If
+#HotIf
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -308,28 +328,29 @@ VMaximizeToggle() {
 
 ; screen turn off
 ; taken from https://superuser.com/a/485930
-#m::
-Sleep 1000
-SendMessage, 0x112, 0xF170, 2,, Program Manager
-return
+ScreenTurnOff() {
+    Sleep(1000)
+    SendMessage(0x112, 0xF170, 2,, "Program Manager")
+}
+#m::ScreenTurnOff()
 
 ; Temporary rename key for irfanview
-#if WinActive("ahk_exe i_view64.exe")
+#HotIfWinActive "ahk_exe i_view64.exe"
 Ins::Send {F2}
-#If
+#HotIf
 
 ExplicitResize() {
-    WinGet, Active_ID, ID, A
-    WinGetTitle, Active_Title, A
-    InputBox, wW, Window width, Enter the desired window width:, , 260, 130
-    InputBox, wH, Window height, Enter the desired window height:, , 260, 130
-    WinRestore, %Active_Title%
-    WinMove, ahk_id %Active_ID%, , , , wW, wH
+    Active_ID := WinGetID("A")
+    Active_Title := WinGetTitle("A")
+    wW := InputBox("Enter the desired window width:", "Window width", "W260 H130")
+    wH := InputBox("Enter the desired window height:", "Window height", "W260 H130")
+    WinRestore(%Active_Title%)
+    WinMove(, , wW, wH, "ahk_id" Active_ID)
 }
 ^=::ExplicitResize()
 
 
-;#if WinActive("ahk_exe RobloxPlayerBeta.exe")
+;#HotIfWinActive "ahk_exe RobloxPlayerBeta.exe"
 ;0::Space
 ;MButton::Space
-;#if
+;#HotIf
