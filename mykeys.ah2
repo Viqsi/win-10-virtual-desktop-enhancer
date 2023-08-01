@@ -2,6 +2,7 @@
 ;;; Setup Start ;;;
 ;;;;;;;;;;;;;;;;;;;
 ; As suggested by VD.ah2
+#Requires AutoHotkey v2.0
 #SingleInstance force
 ListLines 0
 SendMode "Input"
@@ -369,7 +370,7 @@ ExplicitResize() {
     wW := InputBox("Enter the desired window width:", "Window width", "W260 H130")
     wH := InputBox("Enter the desired window height:", "Window height", "W260 H130")
     WinRestore(%Active_Title%)
-    WinMove(, , wW, wH, "ahk_id" Active_ID)
+    WinMove(, , wW, wH, "ahk_id " Active_ID)
 }
 ^=::ExplicitResize()
 
