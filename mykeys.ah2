@@ -1,3 +1,4 @@
+; vim:ft=autohotkey
 ;;;;;;;;;;;;;;;;;;;
 ;;; Setup Start ;;;
 ;;;;;;;;;;;;;;;;;;;
@@ -290,9 +291,12 @@ F9::Run("C:\WINDOWS\system32\calc.exe")
 !x::Send("^{Delete}")
 !v::Send("+{Insert}")
 #HotIf
-; Command-R to rename pdf in SumatraPDF
+; Command-R to rename pdf, Command/Control-W to close window in SumatraPDF
 #HotIf WinActive("ahk_exe SumatraPDF.exe")
 !r::Send("{F2}")
+!w::WinClose("A")
+^w::WinClose("A")
+!q::Send("^q")  ; override earlier 
 #HotIf
 ; Command/Control-W to close window in PDFXChange
 #HotIf WinActive("ahk_exe PDFXEdit.exe")
