@@ -27,8 +27,12 @@ HomeDir := EnvGet("USERPROFILE")
 ; need to do this *before* pulling in virtual-desktop-enhancer)
 ; Uses WinMoveTop because they're *already* always-on-top, but so is the taskbar
 TBWindowsRise() {
-    WinMoveTop("dotnet_title_bar")
-    WinMoveTop("NSnetmon")
+    try {
+        WinMoveTop("dotnet_title_bar")
+    }
+    try {
+        WinMoveTop("NSnetmon")
+    }
 }
 SetTimer(TBWindowsRise, 1000)
 
