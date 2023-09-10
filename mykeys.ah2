@@ -383,7 +383,185 @@ ExplicitResize() {
 ^=::ExplicitResize()
 
 
-;#HotIf WinActive("ahk_exe RobloxPlayerBeta.exe")
-;0::Send("{Space}")
-;MButton::Send("{Space}")
-;#HotIf
+; Scripting silliness for Roblox (specifically The Wild West).
+; The goal is to have a mappable function for Toggle To Aim, or Suspend Aim
+; Toggled State. The idea is that Roblox games generally require the right
+; mouse button to be held down to aim, and we want that to be toggleable, and
+; we also want to be able to indicate keys when that toggle should be
+; temporarily suspended. There are normally ways to toggle "hold down RMB" with
+; other utilities I have, BUT when certain keys are pressed, Roblox seemingly
+; throws away the current RMB-pressed state. So it has to be reestablished.
+; So in the end, we have two states to track - whether or not RMB should be
+; held down right now (for doing the Right Thing during refreshes) and whether
+; or not we're currently in a mode in-game where that toggle should be
+; temporarily suspended.
+; This got turned into a class because, frankly, I was rapidly ending up with
+; too many globals.
+
+class RobloxHoldRMB {
+    __new(DestWindow) {
+        this.DestWindow := DestWindow
+        this.HoldingRMB := False
+        this.SuspendingHold := False
+        this.ButtonCount := 0
+        this.OSDGui := this._OSDCreateGui()
+        ; figure center of screen
+        WinGetClientPos(&RBX, &RBY, &RBW, &RBH, this.DestWindow)
+        this.xcenter := (RBW) // 2
+        this.ycenter := (RBH) // 2
+        ;this.Crosshair := this._CreateCrosshair()
+    }
+    
+    _OSDCreateGui() {
+        OSDGui := Gui("-caption +alwaysontop +toolwindow")
+        OSDGui.SetFont("s10 w600", "Arial Bold")
+        OSDGui.MarginX := 0
+        OSDGui.MarginY := 0
+        OSDGui.Add("Text", "x0 y0 cWhite backgroundRed vRMBHeld", "Hold")
+        OSDGui.Add("Text", "x+10 y0 cWhite backgroundRed vRMBSuspend", "Susp")
+        OSDGui.Add("Text", "x+10 y0 cWhite backgroundBlue vRMBCount", this.ButtonCount)
+        OSDGui.Show("x500 y0")
+        return OSDGui
+    }
+    
+    ;_CreateCrosshair() {
+    ;    WinGetPos(&RBX, &RBY, &RBW, &RBH, this.DestWindow)
+    ;    xcenter := (RBW - RBX) // 2
+    ;    ycenter := (RBH - RBY) // 2
+    ;    CrosshairGUI := Gui("-caption +alwaysontop +toolwindow")
+    ;    WinSetTransparent(128, CrosshairGui)
+    ;    WinSetTransColor("FFFFF8", CrosshairGui)
+    ;    CrosshairGUI.SetFont("s18 w500", "Arial Bold")
+    ;    CrosshairGui.MarginX := 0
+    ;    CrosshairGui.MarginY := 0
+    ;    CrosshairGui.Add("Text", "x0 y0 Center cWhite backgroundFFFFF8 vCrosshair", "X")
+    ;    CrosshairGui.Show("x" . xcenter . " y" . ycenter)
+    ;    return CrosshairGUI
+    ;}
+    _CenterMouse() {
+        MouseMove(this.xcenter, this.ycenter)
+    }
+    
+    _SendClick(updown) {
+        ;ControlClick("x200 y200", this.DestWindow,,"R",,updown . " Pos NA")
+        ; Roblox doesn't seem to repond to ControlClick at all. So instead we
+        ; armor Sends with WinActive checks.
+        WinActivate(this.DestWindow)
+        If (updown = "D") {
+            If (WinActive(this.DestWindow)) {
+                Send("{RButton down}")
+                this.ButtonCount += 1
+            }
+        } Else {
+            If (WinActive(this.DestWindow)) {
+                Send("{RButton up}")
+                this.ButtonCount -= 1
+            }
+        }
+        this.OSDGui["RMBCount"].Text := this.ButtonCount
+        this.OSDGui["RMBCount"].Redraw()
+    }
+    
+    _UpdateGui(textctl, onoroff) {
+        If onoroff {
+            this.OSDGui[textctl].Opt("backgroundGreen")
+        } Else {
+            this.OSDGui[textctl].Opt("backgroundRed")
+        }
+        this.OSDGui[textctl].Redraw()
+    }
+    
+    _Reconcile() {
+        While this.ButtonCount > 0 {
+            this._SendClick("U")
+        }
+        While this.ButtonCount < 0 {
+            this._SendClick("D")
+        }
+    }
+    
+    RMBRefresh() {
+        ; Refresh RMB hold state after Roblox throws it away.
+        this._Reconcile()
+        if (!this.SuspendingHold and this.HoldingRMB) {
+            this._CenterMouse()
+            ;Sleep(200)
+            ;this._SendClick("D")
+            this._CenterMouse()
+            Loop(3) {
+                this._SendClick("D")
+                Sleep 150
+            }
+        }
+    }
+    
+    RMBSuspend() {
+        this.SuspendingHold := !this.SuspendingHold
+        this._UpdateGui("RMBSuspend", this.SuspendingHold)
+        this.RMBRefresh()
+    }
+    
+    RMBToggle() {
+        this.HoldingRMB := !this.HoldingRMB
+        this._UpdateGui("RMBHeld", this.HoldingRMB)
+        this.RMBRefresh()
+        this.RMBRefresh()
+    }
+    
+    __Delete() {
+        this._Reconcile()
+        this.OSDGui.Destroy()
+    }
+}
+
+RBHRMB() {
+    global RBHRMBInstance
+    if (!IsSet(RBHRMBInstance)) {
+        try {
+            RBHRMBInstance := RobloxHoldRMB(
+                    WinExist("ahk_exe RobloxPlayerBeta.exe"))
+                    ;WinExist("ahk_exe KeyTest.exe"))
+        }
+    }
+    return RBHRMBInstance
+}
+RBHRMB_Exit() {
+    global RBHRMBInstance
+    if (IsSet(RBHRMBInstance)) {
+        RBHRMBInstance := unset   ; destroy
+    }
+}
+
+#HotIf WinActive("ahk_exe RobloxPlayerBeta.exe")
+;#HotIf WinActive("ahk_exe KeyTest.exe")
+; Currently set up for controls for The Wild West.
+~1::RBHRMB().RMBRefresh()
+~2::RBHRMB().RMBRefresh()
+~3::RBHRMB().RMBRefresh()
+~4::RBHRMB().RMBRefresh()
+~5::RBHRMB().RMBRefresh()
+~6::RBHRMB().RMBRefresh()
+~7::RBHRMB().RMBSuspend()
+~8::RBHRMB().RMBSuspend()
+~v::RBHRMB().RMBRefresh()
+~b::RBHRMB().RMBSuspend()
+~m::RBHRMB().RMBSuspend()
+~t::RBHRMB().RMBSuspend()
+~h::RBHRMB().RMBSuspend()
+~/::RBHRMB().RMBSuspend()
+=::RBHRMB().RMBToggle()
+`::{
+    ; "master reset and rehold" key
+    RBHRMB_Exit()
+    RBHRMB().RMBToggle()
+}
+Del::RBHRMB_Exit()
+;XButton2::Send("{Space down}")
+;XButton2 up::Send("{Space up}")
+XButton2::Send("{Space}")
+XButton1::Send("{LShift down}")
+XButton1 up::Send("{LShift up}")
+#HotIf
+F14::Reload
+; fIXME: designate F13 as "clear state no matter what window we're in"
+; (probably by switching to roblox, learing, then switching back)
