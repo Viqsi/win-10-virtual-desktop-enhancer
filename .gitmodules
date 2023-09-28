@@ -1,4 +1,4 @@
 [submodule "VD"]
 	path = VD
-	url = https://github.com/FuPeiJiang/VD.ahk.git
+	url = https://github.com/Viqsi/VD.ah2.git
 	branch = v2_port
