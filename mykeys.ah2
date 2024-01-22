@@ -19,22 +19,45 @@ SetControlDelay(-1)
 HomeDir := EnvGet("USERPROFILE")
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Window Z-Level Management ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Window Position Management ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Keep NSNetMon and FB2K titlebar on top of the taskbar
-; At the top of the script due to script execution setup timing (basically, we
-; need to do this *before* pulling in virtual-desktop-enhancer)
 ; Uses WinMoveTop because they're *already* always-on-top, but so is the taskbar
-TBWindowsRise() {
-    try {
-        WinMoveTop("dotnet_title_bar")
-    }
-    try {
-        WinMoveTop("NSnetmon")
+GroupAdd("OverTaskbar", "NSnetmon ahk_class NSnetmon ahk_exe netmon.exe")
+GroupAdd("OverTaskbar", "dotnet_title_bar ahk_exe foobar2000.exe")
+rise_above_taskbar() {
+    TargetWindows := WinGetList("ahk_group OverTaskbar")
+    For targetwindow In TargetWindows {
+        WinMoveTop(targetwindow)
     }
 }
-SetTimer(TBWindowsRise, 1000)
+
+; Move notifications to the top of the screen rather than the bottom.
+; Needed for Windows core notifications, micro-popups (current desktop,
+; brightness meter, et cetera), and Steam notifications.
+; FIXME: Steam notifications window title is a guess; I don't actually have a
+; sample yet!
+GroupAdd("TopNotif", "New notification ahk_class Windows.UI.Core.CoreWindow")
+GroupAdd("TopNotif", "ahk_class XamlExplorerHostIslandWindow")
+GroupAdd("TopNotif",
+        "notification ahk_class SDL_app ahk_exe steamwebhelper.exe")
+flip_to_top() {
+    TargetWindows := WinGetList("ahk_group TopNotif")
+    For TargetWindow In TargetWindows {
+        WinGetPos(, &OrigY,, &Height, TargetWindow)
+        If (OrigY > (A_ScreenHeight / 2)) {
+            WinMove(,A_ScreenHeight - OrigY - Height,,, TargetWindow)
+        }
+    }
+}
+
+; Timer for both of the above.
+WindowsManage() {
+    flip_to_top()
+    rise_above_taskbar()
+}
+SetTimer(WindowsManage, 10)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,7 +209,7 @@ GroupAdd("TerminalWindows", "ahk_exe WindowsTerminal.exe")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other Application Invocation Hotkeys ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-F10::Run("C:\Program Files\Vim\vim90\gvim.exe", HomeDir)
+F10::Run("C:\Program Files\Vim\vim91\gvim.exe", HomeDir)
 #HotIf Not WinActive("ahk_exe Arcanum.exe")
 F9::Run("C:\WINDOWS\system32\calc.exe")
 #HotIf
@@ -260,6 +283,8 @@ F9::Run("C:\WINDOWS\system32\calc.exe")
 !+y::Send("^+y")
 !+z::Send("^+z")
 !+\::Send("^+\")
+
+^!e::Send("€")
 
 ;!Space::Send("^{Space}")
 ;!Space::Send("^!{End}")
@@ -336,7 +361,7 @@ VMaximizeToggle() {
     ; doing a vertical-only maximize, so we have to try other means
     WinGetPos(&OX,&OY,&OW,&OH,"A")
     ;MsgBox("OX:" OX " OY:" OY " OW:" OW " OH:" OH)
-    Send("#+{Up}")
+    Send("#+{Up}")  ; no-op if already vertically maximized
     WinGetPos(&NX,&NY,&NW,&NH,"A")
     ;MsgBox("NX:" NX " NY:" NY " NW:" NW " NH:" NH)
     if (OY == OY && OX == NX && OW == NW && OH == NH) {
@@ -438,7 +463,7 @@ class RobloxHoldRMB {
         OSDGui.Add("Text", "x+10 y0 cWhite backgroundRed vRMBChat", "Chat")
         OSDGui.Add("Text", "x+10 y0 cWhite backgroundBlue vRMBCount",
                 this.ButtonCount)
-        OSDGui.Show("x500 y0")
+        OSDGui.Show("x500 y26")
         return OSDGui
     }
     
