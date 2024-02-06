@@ -36,18 +36,21 @@ rise_above_taskbar() {
 ; Move notifications to the top of the screen rather than the bottom.
 ; Needed for Windows core notifications, micro-popups (current desktop,
 ; brightness meter, et cetera), and Steam notifications.
-; FIXME: Steam notifications window title is a guess; I don't actually have a
-; sample yet!
+; NOTE: Actual window title for Steam is 'notificationtoasts_107_desktop' but
+; that '107' makes me wary that it might change with future revisions, so I've
+; gone with a truncated version.
 GroupAdd("TopNotif", "New notification ahk_class Windows.UI.Core.CoreWindow")
 GroupAdd("TopNotif", "ahk_class XamlExplorerHostIslandWindow")
 GroupAdd("TopNotif",
-        "notification ahk_class SDL_app ahk_exe steamwebhelper.exe")
+        "notificationtoasts ahk_class SDL_app ahk_exe steamwebhelper.exe")
 flip_to_top() {
     TargetWindows := WinGetList("ahk_group TopNotif")
     For TargetWindow In TargetWindows {
         WinGetPos(, &OrigY,, &Height, TargetWindow)
-        If (OrigY > (A_ScreenHeight / 2)) {
-            WinMove(,A_ScreenHeight - OrigY - Height,,, TargetWindow)
+        If ((OrigY > (A_ScreenHeight / 2)) && (Height != 53)) {
+            ; 53 is the height of a not-yet-opened new notification; this is a
+            ; bug workaround.
+            WinMove(,Abs(A_ScreenHeight - OrigY - Height),,, TargetWindow)
         }
     }
 }
