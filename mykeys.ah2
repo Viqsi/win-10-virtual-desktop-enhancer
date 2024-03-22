@@ -335,6 +335,11 @@ F9::Run("C:\WINDOWS\system32\calc.exe")
 !w::WinClose("A")
 ^w::WinClose("A")
 #HotIf
+; Command/Control-backslash for 1password in Floorp
+#HotIf WinActive("ahk_class MozillaWindowClass")
+!\::Send("^.")
+^\::Send("^.")
+#HotIf
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -394,6 +399,18 @@ ScreenTurnOff() {
     SendMessage(0x112, 0xF170, 2,, "Program Manager")
 }
 #m::ScreenTurnOff()
+
+; extra hotkeys for FBReader
+#HotIf WinActive("ahk_exe FBReader.exe",,"FBReader")
+Up::Left
+Down::Right
+PgUp::Left
+PgDn::Right
+BS::Left
++Space::Left
+(::Left
+)::Right
+#HotIf
 
 ; Temporary rename key for irfanview
 #HotIf WinActive("ahk_exe i_view64.exe")
