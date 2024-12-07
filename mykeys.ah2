@@ -26,6 +26,7 @@ HomeDir := EnvGet("USERPROFILE")
 ; Uses WinMoveTop because they're *already* always-on-top, but so is the taskbar
 GroupAdd("OverTaskbar", "NSnetmon ahk_class NSnetmon ahk_exe netmon.exe")
 GroupAdd("OverTaskbar", "dotnet_title_bar ahk_exe foobar2000.exe")
+GroupAdd("OverTaskbar", "Audacious ahk_exe audacious.exe")
 rise_above_taskbar() {
     TargetWindows := WinGetList("ahk_group OverTaskbar")
     For targetwindow In TargetWindows {
@@ -50,7 +51,9 @@ flip_to_top() {
         If ((OrigY > (A_ScreenHeight / 2)) && (Height != 53)) {
             ; 53 is the height of a not-yet-opened new notification; this is a
             ; bug workaround.
-            WinMove(,Abs(A_ScreenHeight - OrigY - Height),,, TargetWindow)
+            ; 50 is the Officially Determined Height of a taskbar in Win11;
+            ; this is a workaround when using StartAllBack.
+            WinMove(,Abs(A_ScreenHeight - OrigY - Height + 50),,, TargetWindow)
         }
     }
 }
@@ -67,7 +70,7 @@ SetTimer(WindowsManage, 10)
 ;;; Desktop Switching ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 #Include "VD\VD.ah2"
-ChangeDesktopDisplayStatus(num:=1) {
+ChangeDesktopDisplayStatus(prevnum, num:=1) {
     A_IconTip := VD.getNameFromDesktopNum(num)
     try {
         TraySetIcon(A_ScriptDir "/icons/" num ".ico")
@@ -76,22 +79,20 @@ ChangeDesktopDisplayStatus(num:=1) {
         TraySetIcon(A_ScriptDir "/icons/+.ico")
     }
 }
-GoToDesktopNum(num:=1) {
-    VD.goToDesktopNum(num)
-    ChangeDesktopDisplayStatus(num)
-}
 MoveWindowToDesktopNum(num:=1) {
     VD.MoveWindowToDesktopNum("A",num)
-    GoToDesktopNum(num)
+    VD.goToDesktopNum(num)
 }
 ; set initial display status on launch
-ChangeDesktopDisplayStatus(VD.getCurrentDesktopNum())
+ChangeDesktopDisplayStatus(0,VD.getCurrentDesktopNum())
+VD.RegisterDesktopNotifications()
+VD.DefineProp("CurrentVirtualDesktopChanged", {Call:ChangeDesktopDisplayStatus})
 ; These are a roundabout way of implementing function key shortcuts for desktop
 ; switching.
-F1::GoToDesktopNum(1)
-F2::GoToDesktopNum(2)
-F3::GoToDesktopNum(3)
-F4::GoToDesktopNum(4)
+F1::VD.goToDesktopNum(1)
+F2::VD.goToDesktopNum(2)
+F3::VD.goToDesktopNum(3)
+F4::VD.goToDesktopNum(4)
 +F1::MoveWindowToDesktopNum(1)
 +F2::MoveWindowToDesktopNum(2)
 +F3::MoveWindowToDesktopNum(3)
@@ -350,11 +351,18 @@ F9::Run("C:\WINDOWS\system32\calc.exe")
 ; * Alt+Shift+F3 maximizes vertically only.
 ; * Some app windows (gvim, terminals) default to vertical-only.
 
+; WinRestore workaround
+; Documented on https://www.autohotkey.com/docs/v2/lib/WinRestore.htm
+; Used instead because WSL X windows in particular freak out at WinRestore()
+WinRestoreWork(wintitle) {
+    PostMessage(0x0112, 0xF120, , , wintitle)
+}
+
 ; Regular maximizing toggle
 ; based on original v1 toggle code from https://superuser.com/a/403017
 MaximizeToggle() {
     if (WinGetMinMax("A")) {
-        WinRestore("A")
+        WinRestoreWork("A")
     } else {
         WinMaximize("A")
     }
@@ -373,7 +381,7 @@ VMaximizeToggle() {
     WinGetPos(&NX,&NY,&NW,&NH,"A")
     ;MsgBox("NX:" NX " NY:" NY " NW:" NW " NH:" NH)
     if (OY == OY && OX == NX && OW == NW && OH == NH) {
-        WinRestore("A")
+        WinRestoreWork("A")
     }
 }
 ; Default: Alt-F3 maximizes all, Alt-Shift-F3 does vertical-only.
@@ -382,6 +390,7 @@ VMaximizeToggle() {
 ; Vertical-only maximize windows swap these.
 GroupAdd("VerticalMaximizeDefault", "ahk_group TerminalWindows")
 GroupAdd("VerticalMaximizeDefault", "ahk_exe gvim.exe")
+GroupAdd("VerticalMaximizeDefault", "GVIM ahk_exe msrdc.exe")
 #HotIf WinActive("ahk_group VerticalMaximizeDefault")
 !F3::VMaximizeToggle()
 !+F3::MaximizeToggle()
@@ -422,7 +431,7 @@ ExplicitResize() {
     Active_Title := WinGetTitle("A")
     wW := InputBox("Enter the desired window width:", "Window width", "W260 H130")
     wH := InputBox("Enter the desired window height:", "Window height", "W260 H130")
-    WinRestore(%Active_Title%)
+    WinRestoreWork(%Active_Title%)
     WinMove(, , wW, wH, "ahk_id " Active_ID)
 }
 ^=::ExplicitResize()
