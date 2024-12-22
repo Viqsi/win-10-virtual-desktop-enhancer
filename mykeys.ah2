@@ -25,14 +25,34 @@ HomeDir := EnvGet("USERPROFILE")
 ; Keep NSNetMon and FB2K titlebar on top of the taskbar
 ; Uses WinMoveTop because they're *already* always-on-top, but so is the taskbar
 GroupAdd("OverTaskbar", "NSnetmon ahk_class NSnetmon ahk_exe netmon.exe")
-GroupAdd("OverTaskbar", "dotnet_title_bar ahk_exe foobar2000.exe")
-GroupAdd("OverTaskbar", "Audacious ahk_exe audacious.exe")
+;GroupAdd("OverTaskbar", "dotnet_title_bar ahk_exe foobar2000.exe")
+;GroupAdd("OverTaskbar", "Audacious ahk_exe audacious.exe")
 rise_above_taskbar() {
-    TargetWindows := WinGetList("ahk_group OverTaskbar")
-    For targetwindow In TargetWindows {
-        WinMoveTop(targetwindow)
+    If IsWindowNotOverlapped(WinExist('ahk_class Shell_TrayWnd')) {
+        TargetWindows := WinGetList("ahk_group OverTaskbar")
+        For targetwindow In TargetWindows {
+            WinMoveTop(targetwindow)
+        }
     }
 }
+; Used to check if a window is overlapped
+; Taken from https://www.autohotkey.com/boards/viewtopic.php?t=121402
+IsWindowNotOverlapped(hWnd) {
+    RECT1 := Buffer(16), RECT2 := Buffer(16), RECT3 := Buffer(16)
+    DllCall('GetWindowRect', 'Ptr', hWnd, 'Ptr', RECT1)
+    for wnd in WinGetList() {
+        if wnd = hWnd {
+            break
+        }
+        DllCall('GetWindowRect', 'Ptr', wnd, 'Ptr', RECT2)
+        DllCall('IntersectRect', 'Ptr', RECT3, 'Ptr', RECT1, 'Ptr', RECT2)
+        if DllCall('EqualRect', 'Ptr', RECT1, 'Ptr', RECT3) {
+            return false
+        }
+    }
+    return true
+}
+
 
 ; Move notifications to the top of the screen rather than the bottom.
 ; Needed for Windows core notifications, micro-popups (current desktop,
