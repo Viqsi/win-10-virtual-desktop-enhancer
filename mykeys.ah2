@@ -68,12 +68,13 @@ flip_to_top() {
     TargetWindows := WinGetList("ahk_group TopNotif")
     For TargetWindow In TargetWindows {
         WinGetPos(, &OrigY,, &Height, TargetWindow)
-        If ((OrigY > (A_ScreenHeight / 2)) && (Height != 53)) {
+        If ((OrigY > (A_ScreenHeight / 2)) && (Height != 86)) {
             ; 53 is the height of a not-yet-opened new notification; this is a
-            ; bug workaround.
+            ; bug workaround. (Changed to 86 when I moved to higher res)
             ; 50 is the Officially Determined Height of a taskbar in Win11;
-            ; this is a workaround when using StartAllBack.
-            WinMove(,Abs(A_ScreenHeight - OrigY - Height + 50),,, TargetWindow)
+            ; this is a workaround when using StartAllBack. (Changed to 80 when
+            ; I moved to higher res)
+            WinMove(,Abs(A_ScreenHeight - OrigY - Height + 80),,, TargetWindow)
         }
     }
 }
@@ -380,11 +381,12 @@ WinRestoreWork(wintitle) {
 
 ; Regular maximizing toggle
 ; based on original v1 toggle code from https://superuser.com/a/403017
-MaximizeToggle() {
-    if (WinGetMinMax("A")) {
-        WinRestoreWork("A")
+MaximizeToggle(wintitle) {
+    TargetWin := WinGetID(wintitle)
+    if (WinGetMinMax(TargetWin)) {
+        WinRestoreWork(TargetWin)
     } else {
-        WinMaximize("A")
+        WinMaximize(TargetWin)
     }
 }
 ; Vertical-only maximizing toggle.
@@ -392,28 +394,29 @@ MaximizeToggle() {
 ; this became a tad error-prone (especially if the mouse was bumped between
 ; clicks somehow). So now I'm using one based on the keyboard shortcut Windows
 ; provides. I'd just use it all the time, except it's not a toggle, so...
-VMaximizeToggle() {
+VMaximizeToggle(wintitle) {
+    TargetWin := WinGetID(wintitle)
     ; unlike regular maximizing, no "maximized" state is explicitly set when
     ; doing a vertical-only maximize, so we have to try other means
-    WinGetPos(&OX,&OY,&OW,&OH,"A")
+    WinGetPos(&OX,&OY,&OW,&OH,TargetWin)
     ;MsgBox("OX:" OX " OY:" OY " OW:" OW " OH:" OH)
     Send("#+{Up}")  ; no-op if already vertically maximized
-    WinGetPos(&NX,&NY,&NW,&NH,"A")
+    WinGetPos(&NX,&NY,&NW,&NH,TargetWin)
     ;MsgBox("NX:" NX " NY:" NY " NW:" NW " NH:" NH)
     if (OY == OY && OX == NX && OW == NW && OH == NH) {
-        WinRestoreWork("A")
+        WinRestoreWork(TargetWin)
     }
 }
 ; Default: Alt-F3 maximizes all, Alt-Shift-F3 does vertical-only.
-!F3::MaximizeToggle()
-!+F3::VMaximizeToggle()
+!F3::MaximizeToggle("A")
+!+F3::VMaximizeToggle("A")
 ; Vertical-only maximize windows swap these.
 GroupAdd("VerticalMaximizeDefault", "ahk_group TerminalWindows")
 GroupAdd("VerticalMaximizeDefault", "ahk_exe gvim.exe")
 GroupAdd("VerticalMaximizeDefault", "GVIM ahk_exe msrdc.exe")
 #HotIf WinActive("ahk_group VerticalMaximizeDefault")
-!F3::VMaximizeToggle()
-!+F3::MaximizeToggle()
+!F3::VMaximizeToggle("A")
+!+F3::MaximizeToggle("A")
 #HotIf
 
 
@@ -448,10 +451,11 @@ Ins::Send("{F2}")
 
 ExplicitResize() {
     Active_ID := WinGetID("A")
-    Active_Title := WinGetTitle("A")
+    ;Active_Title := WinGetTitle(Active_ID)
     wW := InputBox("Enter the desired window width:", "Window width", "W260 H130")
     wH := InputBox("Enter the desired window height:", "Window height", "W260 H130")
-    WinRestoreWork(%Active_Title%)
+    ;WinRestoreWork(%Active_Title%)
+    WinRestoreWork(Active_ID)
     WinMove(, , wW, wH, "ahk_id " Active_ID)
 }
 ^=::ExplicitResize()
