@@ -31,7 +31,13 @@ rise_above_taskbar() {
     If IsWindowNotOverlapped(WinExist('ahk_class Shell_TrayWnd')) {
         TargetWindows := WinGetList("ahk_group OverTaskbar")
         For targetwindow In TargetWindows {
+            WinSetAlwaysOnTop(1, targetwindow)
             WinMoveTop(targetwindow)
+        }
+    } Else {
+        TargetWindows := WinGetList("ahk_group OverTaskbar")
+        For targetwindow In TargetWindows {
+            WinMoveBottom(targetwindow)
         }
     }
 }
@@ -60,10 +66,11 @@ IsWindowNotOverlapped(hWnd) {
 ; NOTE: Actual window title for Steam is 'notificationtoasts_107_desktop' but
 ; that '107' makes me wary that it might change with future revisions, so I've
 ; gone with a truncated version.
-GroupAdd("TopNotif", "New notification ahk_class Windows.UI.Core.CoreWindow")
+;GroupAdd("TopNotif", "New notification ahk_class Windows.UI.Core.CoreWindow")
 GroupAdd("TopNotif", "ahk_class XamlExplorerHostIslandWindow")
 GroupAdd("TopNotif",
         "notificationtoasts ahk_class SDL_app ahk_exe steamwebhelper.exe")
+;GroupAdd("TopNotif", "Microsoft Teams Notification")
 flip_to_top() {
     TargetWindows := WinGetList("ahk_group TopNotif")
     For TargetWindow In TargetWindows {
@@ -202,6 +209,7 @@ terminal_invoke(termlaunchmode) {
         Case "reattach": Run("wt -p DebianReattachTmux", HomeDir)
         Case "pwsh": Run("wt -p PowerShell", HomeDir)
         Case "cmd": Run("wt -p `"Command Prompt`"", HomeDir)
+        Case "gitbash": Run("wt -p `"Git Bash`"", HomeDir)
     }
 }
 F11::terminal_invoke("tmux")
